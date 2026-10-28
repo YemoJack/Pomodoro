@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>FormatVersion</key>
+	<integer>1</integer>
+	<key>Store</key>
+	<dict>
+		<key>PomodoroTests</key>
+		<dict>
+			<key>SessionStoreTests</key>
+			<dict>
+				<key>testTodayStatisticsOnlyIncludeCompletedFocusSessions</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.0019268989562988281</real>
+				</dict>
+			</dict>
+			<key>TimerStoreTests</key>
+			<dict>
+				<key>testCompletedFinalFocusFinishesPlanWithoutBreak</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.0017379522323608398</real>
+				</dict>
+				<key>testCompletedFocusWaitsForBreakBeforeFinalRound</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.0014508962631225586</real>
+				</dict>
+				<key>testEndingFocusDoesNotCountAsCompleted</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.0011489391326904297</real>
+				</dict>
+				<key>testSettingsExposeFocusBreakAndRoundValues</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.0013329982757568359</real>
+				</dict>
+				<key>testSkippingBreakStartsFocus</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.001320958137512207</real>
+				</dict>
+				<key>testSkippingFocusAdvancesRoundAndStartsBreak</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.001253962516784668</real>
+				</dict>
+				<key>testSkippingLastFocusFinishesPlanWithoutBreak</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.0012389421463012695</real>
+				</dict>
+				<key>testStartPauseAndResume</key>
+				<dict>
+					<key>mrnet</key>
+					<real>0.001217961311340332</real>
+				</dict>
+			</dict>
+		</dict>
+	</dict>
+</dict>
+</plist>
