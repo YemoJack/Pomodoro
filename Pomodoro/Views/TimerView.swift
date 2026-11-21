@@ -22,10 +22,14 @@ struct TimerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 10) {
+            VStack(spacing: 0) {
+                TimerPresetPicker(isTiming: timer.isActive)
+                    .padding(.bottom, 14)
+
                 Label(timer.statusTitle, systemImage: timer.status == .completed ? "checkmark.circle.fill" : timer.phase.symbol)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(timer.status == .completed ? .green : .primary)
+                    .padding(.bottom, 16)
 
                 ZStack {
                     ProgressRingView(
@@ -51,35 +55,18 @@ struct TimerView: View {
                         }
                     }
 
-                    VStack(spacing: 8) {
-                        Text(displayedTime)
-                            .font(.system(size: 58, weight: .medium, design: .rounded))
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-
-                        if isPressingRing && adjustedOneOffMinutes == nil {
-                            Text("继续按住…")
-                                .foregroundStyle(.secondary)
-                        } else if adjustedOneOffMinutes != nil {
-                            Text("旋转调整 · 松开保存")
-                                .foregroundStyle(.secondary)
-                        } else if timer.preparedOneOffFocusMinutes != nil {
-                            Text("下一次仅进行这一轮专注")
-                                .foregroundStyle(.secondary)
-                        } else if timer.status == .completed {
-                            Text(completionMessage)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text(timer.cycleDescription)
-                                .foregroundStyle(.secondary)
+                    Text(displayedTime)
+                        .font(.system(size: 58, weight: .medium, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .overlay(alignment: .bottom) {
+                            if let ringCaption {
+                                Text(ringCaption)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .offset(y: 21)
+                            }
                         }
-
-                        if timer.canPrepareOneOffFocus {
-                            Text("长按圆环并旋转，可调整单次专注时长")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
                 }
                 .scaleEffect(adjustedOneOffMinutes != nil ? 1.02 : (isPressingRing ? 0.985 : 1))
                 .animation(.easeOut(duration: 0.12), value: isPressingRing)
@@ -93,8 +80,8 @@ struct TimerView: View {
                     longPressFeedbackGesture,
                     including: timer.canPrepareOneOffFocus ? .all : .none
                 )
-                .help("长按并沿圆环旋转，设置下一次单次专注时长")
-                .padding(.vertical, 18)
+                .help(timer.canPrepareOneOffFocus ? "长按并沿圆环旋转，设置下一次单次专注时长" : "")
+                .padding(.bottom, 20)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("剩余\(timer.phase.title)时间，\(accessibleTime)")
 
@@ -135,12 +122,7 @@ struct TimerView: View {
             Divider()
 
             HStack(spacing: 20) {
-                Toggle(settings.globalFocusLimitEnabled ? "全局限制" : "专注限制",
-                       isOn: $settings.focusLimitsEnabled)
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .disabled(timer.isGlobalFocusLocked)
-                    .help(settings.globalFocusLimitEnabled ? "全局限制从下一轮专注开始" : "启用或关闭专注限制")
+                restrictionMenu
                 Spacer(minLength: 0)
                 summaryItem(value: "\(sessions.todayFocusCount)", label: "完成番茄")
                 summaryItem(value: formattedTodayMinutes, label: "专注时间")
@@ -162,14 +144,33 @@ struct TimerView: View {
         }
     }
 
-    private var completionMessage: String {
-        if timer.isOneOffFocus {
-            return "本次单次专注已结束"
+    private var restrictionMenu: some View {
+        Menu {
+            FocusRestrictionPicker(selection: $settings.focusRestrictionMode)
+                .labelsHidden()
+                .pickerStyle(.inline)
+        } label: {
+            Label(settings.focusRestrictionMode.title, systemImage: settings.focusRestrictionMode.symbol)
         }
-        if timer.isPlanCompleted {
-            return "本次专注计划已结束"
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .disabled(timer.isGlobalFocusLocked)
+        .help("专注限制。全局限制从下一轮专注开始，提前结束需验证 Mac 登录密码。")
+        .accessibilityLabel("专注限制")
+        .accessibilityValue(settings.focusRestrictionMode.title)
+    }
+
+    private var ringCaption: String? {
+        if adjustedOneOffMinutes != nil {
+            return "旋转调整 · 松开保存"
         }
-        return timer.phase.isFocus ? "完成一个番茄" : "休息完成"
+        if isPressingRing {
+            return "继续按住…"
+        }
+        if timer.preparedOneOffFocusMinutes != nil || timer.isPlanCompleted {
+            return nil
+        }
+        return timer.cycleDescription
     }
 
     private var primarySymbol: String {

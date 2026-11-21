@@ -4,7 +4,6 @@ import SwiftUI
 struct RootView: View {
     @AppStorage("mainWindowAlwaysOnTop") private var isWindowPinned = false
     @State private var selection = Page.timer
-    @State private var showsQuickSettings = false
 
     private enum Page: Hashable {
         case timer
@@ -19,6 +18,7 @@ struct RootView: View {
                     Text("今日").tag(Page.today)
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 .frame(width: 180)
 
                 HStack {
@@ -34,16 +34,12 @@ struct RootView: View {
                     .help(isWindowPinned ? "取消窗口置顶" : "将窗口保持在最上层")
                     .accessibilityLabel(isWindowPinned ? "取消窗口置顶" : "窗口置顶")
 
-                    Button {
-                        showsQuickSettings.toggle()
-                    } label: {
-                        Image(systemName: "slider.horizontal.3")
+                    SettingsLink {
+                        Image(systemName: "gearshape")
                     }
                     .buttonStyle(InteractiveButtonStyle(kind: .icon))
-                    .help("计时设置")
-                    .popover(isPresented: $showsQuickSettings, arrowEdge: .top) {
-                        QuickSettingsView()
-                    }
+                    .help("打开设置")
+                    .accessibilityLabel("设置")
                 }
             }
             .padding(.horizontal, 18)

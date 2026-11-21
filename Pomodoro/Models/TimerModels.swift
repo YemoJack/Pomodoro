@@ -5,6 +5,28 @@ enum TimerDurationLimits {
     static let oneOffFocusMinutes = 3 * 60
 }
 
+enum FocusRestrictionMode: CaseIterable, Hashable {
+    case off
+    case appsAndWebsites
+    case global
+
+    var title: String {
+        switch self {
+        case .off: "关闭限制"
+        case .appsAndWebsites: "App 与网站"
+        case .global: "全局限制"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .off: "shield.slash"
+        case .appsAndWebsites: "shield"
+        case .global: "lock.shield"
+        }
+    }
+}
+
 enum CompletionSoundMode: String, CaseIterable, Codable, Identifiable {
     case system
     case custom

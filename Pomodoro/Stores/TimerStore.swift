@@ -150,7 +150,7 @@ final class TimerStore: ObservableObject {
         focusLimitRound = newPhase.isFocus
             ? FocusLimitRound(
                 id: UUID(), rules: settings.focusLimitRules,
-                isGlobal: settings.focusLimitsEnabled && settings.globalFocusLimitEnabled
+                isGlobal: settings.focusRestrictionMode == .global
             ) : nil
         globalFocusAuthenticationFailed = false
         phase = newPhase
@@ -450,9 +450,9 @@ final class TimerStore: ObservableObject {
     private func observeSettings() {
         settings.$focusMinutes
             .dropFirst()
-            .sink { [weak self] _ in
+            .sink { [weak self] minutes in
                 guard let self, self.status == .idle else { return }
-                self.totalSeconds = self.settings.duration(for: .focus)
+                self.totalSeconds = TimeInterval(minutes * 60)
                 self.remainingSeconds = self.totalSeconds
                 self.persist()
             }
@@ -471,8 +471,8 @@ final class TimerStore: ObservableObject {
 
         phase = snapshot.phase == .longBreak ? .shortBreak : snapshot.phase
         status = snapshot.status
-        totalSeconds = snapshot.totalSeconds
-        remainingSeconds = snapshot.remainingSeconds
+        totalSeconds = status == .idle ? settings.duration(for: .focus) : snapshot.totalSeconds
+        remainingSeconds = status == .idle ? totalSeconds : snapshot.remainingSeconds
         endDate = snapshot.endDate
         startedAt = snapshot.startedAt
         completedRoundsInPlan = snapshot.completedRoundsInPlan

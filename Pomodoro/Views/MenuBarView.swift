@@ -60,7 +60,9 @@ struct MenuBarView: View {
             Divider()
 
             Menu("专注限制") {
-                Toggle("启用专注限制", isOn: $settings.focusLimitsEnabled)
+                FocusRestrictionPicker(selection: $settings.focusRestrictionMode)
+                    .labelsHidden()
+                    .pickerStyle(.inline)
                     .disabled(timer.isGlobalFocusLocked)
                 if settings.focusLimitRules.websites.isActive {
                     Text(focusLimits.chromeStatus)

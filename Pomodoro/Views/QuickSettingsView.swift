@@ -1,30 +1,167 @@
 import SwiftUI
 
-struct QuickSettingsView: View {
+struct TimerPresetPicker: View {
+    let isTiming: Bool
+
     @EnvironmentObject private var settings: SettingsStore
+    @State private var showsPresets = false
     @State private var showsPresetManager = false
 
+    private var presetName: String { settings.activePreset?.name ?? "自定义" }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("计时设置")
-                .font(.headline)
-
-            Picker("计时预设", selection: presetSelection) {
-                ForEach(settings.presets) { preset in
-                    Text("\(preset.name) · \(preset.summary)")
-                        .tag(preset.id)
-                }
-                Text("自定义")
-                    .tag(customPresetID)
+        Button {
+            showsPresets.toggle()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "timer")
+                Text(presetName)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
-
-            Button("管理预设…") {
+            .font(.subheadline.weight(.medium))
+            .frame(maxWidth: 228)
+            .fixedSize(horizontal: true, vertical: false)
+        }
+        .buttonStyle(InteractiveButtonStyle(kind: .secondary))
+        .accessibilityLabel("计时预设")
+        .accessibilityValue(presetName)
+        .popover(isPresented: $showsPresets, arrowEdge: .bottom) {
+            TimerPresetPopover(isTiming: isTiming) {
+                showsPresets = false
                 showsPresetManager = true
+            } onSelect: { id in
+                settings.selectPreset(id: id)
+                showsPresets = false
             }
-            .buttonStyle(InteractiveButtonStyle(kind: .secondary))
+        }
+        .sheet(isPresented: $showsPresetManager) {
+            PresetManagerView()
+        }
+    }
+}
+
+private struct TimerPresetPopover: View {
+    let isTiming: Bool
+    let onManage: () -> Void
+    let onSelect: (String) -> Void
+
+    @EnvironmentObject private var settings: SettingsStore
+    @State private var showsTimingParameters = false
+
+    var body: some View {
+        Group {
+            if showsTimingParameters {
+                timingParameters
+            } else {
+                presetList
+            }
+        }
+        .padding(12)
+        .frame(width: 348)
+        .background(.background)
+    }
+
+    private var presetList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(settings.presets) { preset in
+                            presetRow(preset)
+                                .id(preset.id)
+                        }
+                    }
+                }
+                .frame(height: 32 * CGFloat(min(settings.presets.count, 6)))
+                .onAppear {
+                    if let selectedPresetID = settings.selectedPresetID {
+                        proxy.scrollTo(selectedPresetID)
+                    }
+                }
+            }
 
             Divider()
 
+            HStack {
+                Button("自定义…") {
+                    showsTimingParameters = true
+                }
+                Spacer()
+                Button("管理预设…", action: onManage)
+            }
+            .buttonStyle(InteractiveButtonStyle(kind: .quiet))
+
+            if isTiming {
+                nextPhaseHint
+            }
+        }
+    }
+
+    private func presetRow(_ preset: TimerPreset) -> some View {
+        let isSelected = preset.id == settings.selectedPresetID
+        return Button {
+            onSelect(preset.id)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 14)
+                    .opacity(isSelected ? 1 : 0)
+                    .accessibilityHidden(true)
+                Text(preset.name)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text(preset.summary)
+                    .font(.caption.monospacedDigit())
+                    .fixedSize()
+            }
+            .font(.subheadline)
+            .frame(height: 22)
+        }
+        .buttonStyle(InteractiveButtonStyle(kind: .quiet))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .help(preset.name)
+    }
+
+    private var timingParameters: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                showsTimingParameters = false
+            } label: {
+                Label("计时预设", systemImage: "chevron.left")
+            }
+            .buttonStyle(InteractiveButtonStyle(kind: .quiet))
+            .accessibilityLabel("返回计时预设")
+
+            Divider()
+
+            TimingParametersView()
+
+            if isTiming {
+                nextPhaseHint
+            }
+        }
+        .padding(4)
+    }
+
+    private var nextPhaseHint: some View {
+        Text("时长从下一阶段生效")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 9)
+    }
+}
+
+private struct TimingParametersView: View {
+    @EnvironmentObject private var settings: SettingsStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Stepper(value: $settings.focusMinutes, in: 1...TimerDurationLimits.customFocusMinutes) {
                 LabeledContent("专注时间", value: "\(settings.focusMinutes) 分钟")
             }
@@ -42,37 +179,7 @@ struct QuickSettingsView: View {
             Toggle("专注结束后自动休息", isOn: $settings.autoStartBreaks)
             Toggle("休息结束后自动专注", isOn: $settings.autoStartFocus)
 
-            if settings.autoStartBreaks && settings.autoStartFocus {
-                Label("连续执行已开启", systemImage: "arrow.triangle.2.circlepath")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.green)
-            }
-
-            Text("计时中的修改将在下一阶段生效。")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
-        .padding(18)
-        .frame(width: 330)
-        .sheet(isPresented: $showsPresetManager) {
-            PresetManagerView()
-                .environmentObject(settings)
-        }
-    }
-
-    private let customPresetID = "custom"
-
-    private var presetSelection: Binding<String> {
-        Binding(
-            get: { settings.activePreset?.id ?? customPresetID },
-            set: { value in
-                if value == customPresetID {
-                    settings.selectCustom()
-                } else {
-                    settings.selectPreset(id: value)
-                }
-            }
-        )
     }
 }
 

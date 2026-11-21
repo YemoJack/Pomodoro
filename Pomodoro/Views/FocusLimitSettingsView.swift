@@ -2,6 +2,19 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+struct FocusRestrictionPicker: View {
+    @Binding var selection: FocusRestrictionMode
+
+    var body: some View {
+        Picker("专注限制", selection: $selection) {
+            ForEach(FocusRestrictionMode.allCases, id: \.self) { mode in
+                Label(mode.title, systemImage: mode.symbol)
+                    .tag(mode)
+            }
+        }
+    }
+}
+
 struct FocusLimitSettingsView: View {
     @EnvironmentObject private var settings: SettingsStore
     @EnvironmentObject private var timer: TimerStore
@@ -13,16 +26,14 @@ struct FocusLimitSettingsView: View {
 
     var body: some View {
         Form {
-            Toggle("启用专注限制", isOn: $settings.focusLimitsEnabled)
+            FocusRestrictionPicker(selection: $settings.focusRestrictionMode)
                 .disabled(timer.isGlobalFocusLocked)
-            Toggle("全局限制", isOn: $settings.globalFocusLimitEnabled)
-                .disabled(timer.isGlobalFocusLocked)
-            if settings.globalFocusLimitEnabled {
+            if settings.focusRestrictionMode == .global {
                 Text("下轮专注期间只显示计时器，提前结束需验证 Mac 登录密码。")
                     .foregroundStyle(.secondary)
             }
 
-            if !settings.globalFocusLimitEnabled {
+            if settings.focusRestrictionMode != .global {
                 Section("App") {
                     modePicker($settings.focusLimitRules.apps.mode)
                     if settings.focusLimitRules.apps.mode != .off {

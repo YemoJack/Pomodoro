@@ -39,9 +39,9 @@ final class FocusLimitService: ObservableObject {
     func start(timer: TimerStore, settings: SettingsStore) {
         self.timer = timer
         checkForeground()
-        timer.$activeFocusLimitRound.combineLatest(settings.$focusLimitsEnabled)
-            .sink { [weak self] round, enabled in
-                self?.apply(enabled || round?.round.isGlobal == true ? round : nil)
+        timer.$activeFocusLimitRound.combineLatest(settings.$focusRestrictionMode)
+            .sink { [weak self] round, mode in
+                self?.apply(mode == .appsAndWebsites || round?.round.isGlobal == true ? round : nil)
             }
             .store(in: &subscriptions)
 

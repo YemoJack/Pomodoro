@@ -31,6 +31,7 @@ enum AppDataMigration {
 @MainActor
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
+    private static let customPresetID = "custom"
 
     private enum Key {
         static let focusMinutes = "settings.focusMinutes"
@@ -59,11 +60,11 @@ final class SettingsStore: ObservableObject {
     private let defaults: UserDefaults
     private var isApplyingPreset = false
 
-    @Published var focusLimitsEnabled: Bool {
-        didSet { defaults.set(focusLimitsEnabled, forKey: Key.focusLimitsEnabled) }
-    }
-    @Published var globalFocusLimitEnabled: Bool {
-        didSet { defaults.set(globalFocusLimitEnabled, forKey: Key.globalFocusLimitEnabled) }
+    @Published var focusRestrictionMode: FocusRestrictionMode {
+        didSet {
+            defaults.set(focusRestrictionMode != .off, forKey: Key.focusLimitsEnabled)
+            defaults.set(focusRestrictionMode == .global, forKey: Key.globalFocusLimitEnabled)
+        }
     }
     @Published var focusLimitRules: FocusLimitRules {
         didSet {
@@ -91,8 +92,11 @@ final class SettingsStore: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         AppDataMigration.migrateStandardDefaultsIfNeeded(defaults)
         self.defaults = defaults
-        focusLimitsEnabled = defaults.bool(forKey: Key.focusLimitsEnabled)
-        globalFocusLimitEnabled = defaults.bool(forKey: Key.globalFocusLimitEnabled)
+        if defaults.bool(forKey: Key.focusLimitsEnabled) {
+            focusRestrictionMode = defaults.bool(forKey: Key.globalFocusLimitEnabled) ? .global : .appsAndWebsites
+        } else {
+            focusRestrictionMode = .off
+        }
         focusLimitRules = defaults.data(forKey: Key.focusLimitRules)
             .flatMap { try? JSONDecoder().decode(FocusLimitRules.self, from: $0) } ?? FocusLimitRules()
         let legacyBreakMinutes = defaults.object(forKey: Key.legacyShortBreakMinutes) as? Int ?? 5
@@ -157,7 +161,9 @@ final class SettingsStore: ObservableObject {
         }
 
         let storedPresetID = defaults.string(forKey: Key.selectedPresetID)
-        if presets.contains(where: { $0.id == storedPresetID }) {
+        if storedPresetID == Self.customPresetID {
+            selectedPresetID = nil
+        } else if presets.contains(where: { $0.id == storedPresetID }) {
             selectedPresetID = storedPresetID
         } else {
             selectedPresetID = presets.first(where: {
@@ -368,11 +374,7 @@ final class SettingsStore: ObservableObject {
     }
 
     private func saveSelectedPresetID() {
-        if let selectedPresetID {
-            defaults.set(selectedPresetID, forKey: Key.selectedPresetID)
-        } else {
-            defaults.removeObject(forKey: Key.selectedPresetID)
-        }
+        defaults.set(selectedPresetID ?? Self.customPresetID, forKey: Key.selectedPresetID)
     }
 
     private func saveSoundConfigurations() {
