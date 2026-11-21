@@ -48,6 +48,9 @@ final class SettingsStore: ObservableObject {
         static let fullScreenCompletionDuration = "settings.fullScreenCompletionDuration"
         static let timerPresets = "settings.timerPresets.v1"
         static let selectedPresetID = "settings.selectedTimerPresetID"
+        static let focusLimitsEnabled = "settings.focusLimitsEnabled"
+        static let globalFocusLimitEnabled = "settings.globalFocusLimitEnabled"
+        static let focusLimitRules = "settings.focusLimitRules.v1"
         static let completionSoundMode = "settings.completionSoundMode"
         static let customSoundPath = "settings.customSoundPath"
         static let soundConfigurations = "settings.soundConfigurations.v1"
@@ -55,6 +58,20 @@ final class SettingsStore: ObservableObject {
 
     private let defaults: UserDefaults
     private var isApplyingPreset = false
+
+    @Published var focusLimitsEnabled: Bool {
+        didSet { defaults.set(focusLimitsEnabled, forKey: Key.focusLimitsEnabled) }
+    }
+    @Published var globalFocusLimitEnabled: Bool {
+        didSet { defaults.set(globalFocusLimitEnabled, forKey: Key.globalFocusLimitEnabled) }
+    }
+    @Published var focusLimitRules: FocusLimitRules {
+        didSet {
+            if let data = try? JSONEncoder().encode(focusLimitRules) {
+                defaults.set(data, forKey: Key.focusLimitRules)
+            }
+        }
+    }
 
     @Published var focusMinutes: Int { didSet { saveSetting(focusMinutes, key: Key.focusMinutes) } }
     @Published var breakMinutes: Int { didSet { saveSetting(breakMinutes, key: Key.breakMinutes) } }
@@ -74,6 +91,10 @@ final class SettingsStore: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         AppDataMigration.migrateStandardDefaultsIfNeeded(defaults)
         self.defaults = defaults
+        focusLimitsEnabled = defaults.bool(forKey: Key.focusLimitsEnabled)
+        globalFocusLimitEnabled = defaults.bool(forKey: Key.globalFocusLimitEnabled)
+        focusLimitRules = defaults.data(forKey: Key.focusLimitRules)
+            .flatMap { try? JSONDecoder().decode(FocusLimitRules.self, from: $0) } ?? FocusLimitRules()
         let legacyBreakMinutes = defaults.object(forKey: Key.legacyShortBreakMinutes) as? Int ?? 5
         let legacyRounds = defaults.object(forKey: Key.legacyLongBreakInterval) as? Int ?? 4
         let legacySoundMode = defaults.string(forKey: Key.completionSoundMode)

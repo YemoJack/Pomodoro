@@ -11,6 +11,9 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
+            FocusLimitSettingsView()
+                .tabItem { Label("专注限制", systemImage: "shield") }
+
             notificationView
             .tabItem { Label("通知", systemImage: "bell") }
 

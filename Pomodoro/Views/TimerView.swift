@@ -98,16 +98,20 @@ struct TimerView: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("剩余\(timer.phase.title)时间，\(accessibleTime)")
 
-                Button(action: primaryAction) {
-                    Label(timer.primaryActionTitle, systemImage: primarySymbol)
-                        .frame(minWidth: 130)
+                if timer.isGlobalFocusLocked {
+                    GlobalFocusExitButton(timer: timer)
+                } else {
+                    Button(action: primaryAction) {
+                        Label(timer.primaryActionTitle, systemImage: primarySymbol)
+                            .frame(minWidth: 130)
+                    }
+                    .buttonStyle(InteractiveButtonStyle(kind: .prominent))
+                    .controlSize(.large)
+                    .keyboardShortcut(.space, modifiers: [])
                 }
-                .buttonStyle(InteractiveButtonStyle(kind: .prominent))
-                .controlSize(.large)
-                .keyboardShortcut(.space, modifiers: [])
 
                 HStack(spacing: 24) {
-                    if timer.isActive {
+                    if timer.isActive && !timer.isGlobalFocusLocked {
                         Button(timer.phase.isFocus ? "跳过阶段" : "跳过休息") {
                             confirmSkip()
                         }
@@ -130,7 +134,14 @@ struct TimerView: View {
 
             Divider()
 
-            HStack(spacing: 32) {
+            HStack(spacing: 20) {
+                Toggle(settings.globalFocusLimitEnabled ? "全局限制" : "专注限制",
+                       isOn: $settings.focusLimitsEnabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .disabled(timer.isGlobalFocusLocked)
+                    .help(settings.globalFocusLimitEnabled ? "全局限制从下一轮专注开始" : "启用或关闭专注限制")
+                Spacer(minLength: 0)
                 summaryItem(value: "\(sessions.todayFocusCount)", label: "完成番茄")
                 summaryItem(value: formattedTodayMinutes, label: "专注时间")
             }

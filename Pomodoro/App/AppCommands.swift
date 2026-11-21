@@ -9,6 +9,7 @@ struct AppCommands: Commands {
                 timer.performPrimaryAction()
             }
             .keyboardShortcut(.space, modifiers: [])
+            .disabled(timer.isGlobalFocusLocked)
 
             Button("跳过当前阶段") {
                 if ConfirmationService.confirm(
@@ -20,7 +21,7 @@ struct AppCommands: Commands {
                 }
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
-            .disabled(!timer.isActive)
+            .disabled(!timer.isActive || timer.isGlobalFocusLocked)
         }
     }
 }

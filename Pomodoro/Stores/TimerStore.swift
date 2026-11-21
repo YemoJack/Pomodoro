@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import Security
 
 @MainActor
 final class TimerStore: ObservableObject {
@@ -20,6 +21,7 @@ final class TimerStore: ObservableObject {
     private var endDate: Date?
     private var pendingPhase: TimerPhase?
     private var isMenuTracking = false
+    private var focusLimitRound: FocusLimitRound?
 
     @Published private(set) var phase: TimerPhase = .focus
     @Published private(set) var status: TimerStatus = .idle
@@ -29,6 +31,14 @@ final class TimerStore: ObservableObject {
     @Published private(set) var isOneOffFocus = false
     @Published private(set) var preparedOneOffFocusMinutes: Int?
     @Published private(set) var focusCompletionEventID = 0
+    @Published private(set) var activeFocusLimitRound: ActiveFocusLimitRound?
+    @Published private(set) var isAuthenticatingGlobalFocus = false
+    @Published private(set) var globalFocusAuthenticationFailed = false
+
+    var isGlobalFocusLocked: Bool {
+        guard status == .running, phase.isFocus, let endDate, endDate > Date() else { return false }
+        return focusLimitRound?.isGlobal == true
+    }
 
     init(
         settings: SettingsStore,
@@ -136,6 +146,13 @@ final class TimerStore: ObservableObject {
     }
 
     func start(phase newPhase: TimerPhase) {
+        guard !isGlobalFocusLocked else { return }
+        focusLimitRound = newPhase.isFocus
+            ? FocusLimitRound(
+                id: UUID(), rules: settings.focusLimitRules,
+                isGlobal: settings.focusLimitsEnabled && settings.globalFocusLimitEnabled
+            ) : nil
+        globalFocusAuthenticationFailed = false
         phase = newPhase
         status = .running
         if newPhase.isFocus, let preparedOneOffFocusMinutes {
@@ -161,7 +178,7 @@ final class TimerStore: ObservableObject {
     }
 
     func pause() {
-        guard status == .running else { return }
+        guard status == .running, !isGlobalFocusLocked else { return }
         updateRemaining(at: Date())
         endDate = nil
         status = .paused
@@ -176,7 +193,7 @@ final class TimerStore: ObservableObject {
     }
 
     func skipCurrentPhase() {
-        guard isActive else { return }
+        guard isActive, !isGlobalFocusLocked else { return }
         let now = Date()
 
         if phase.isFocus {
@@ -188,6 +205,56 @@ final class TimerStore: ObservableObject {
     }
 
     func endCurrentCycle() {
+        guard !isGlobalFocusLocked else { return }
+        endCycle()
+    }
+
+    func authenticateAndEndGlobalFocus() async {
+        guard isGlobalFocusLocked, !isAuthenticatingGlobalFocus, let roundID = focusLimitRound?.id else { return }
+        globalFocusAuthenticationFailed = false
+        isAuthenticatingGlobalFocus = true
+        defer { isAuthenticatingGlobalFocus = false }
+
+        let result = await Task.detached { Self.authorizeEndingGlobalFocus() }.value
+        guard isGlobalFocusLocked, focusLimitRound?.id == roundID else { return }
+        if result == errAuthorizationSuccess {
+            updateRemaining(at: Date())
+            endCycle()
+        } else if result != errAuthorizationCanceled {
+            globalFocusAuthenticationFailed = true
+        }
+    }
+
+    private nonisolated static func authorizeEndingGlobalFocus() -> OSStatus {
+        var reference: AuthorizationRef?
+        let created = AuthorizationCreate(nil, nil, [], &reference)
+        guard created == errAuthorizationSuccess, let reference else { return created }
+        defer { AuthorizationFree(reference, [.destroyRights]) }
+
+        return "com.ruidouwang.Pomodoro.end-global-focus".withCString { name in
+            if AuthorizationRightGet(name, nil) != errAuthorizationSuccess {
+                let rule: [String: Any] = [
+                    "class": "user",
+                    "session-owner": true,
+                    "authenticate-user": true,
+                    "shared": false,
+                    "timeout": 0
+                ]
+                let status = AuthorizationRightSet(
+                    reference, name, rule as CFDictionary,
+                    "请输入 Mac 登录密码以终止本次全局专注。" as CFString, nil, nil
+                )
+                guard status == errAuthorizationSuccess else { return status }
+            }
+            var right = AuthorizationItem(name: name, valueLength: 0, value: nil, flags: 0)
+            return withUnsafeMutablePointer(to: &right) { item in
+                var rights = AuthorizationRights(count: 1, items: item)
+                return AuthorizationCopyRights(reference, &rights, nil, [.interactionAllowed, .extendRights], nil)
+            }
+        }
+    }
+
+    private func endCycle() {
         guard status != .idle else { return }
         if isActive {
             recordCurrentPhase(completed: false, endedAt: Date())
@@ -197,6 +264,7 @@ final class TimerStore: ObservableObject {
     }
 
     func restartPlan() {
+        guard !isGlobalFocusLocked else { return }
         if isActive {
             recordCurrentPhase(completed: false, endedAt: Date())
         }
@@ -205,6 +273,7 @@ final class TimerStore: ObservableObject {
     }
 
     func startPendingPhase() {
+        guard !isGlobalFocusLocked else { return }
         if let pendingPhase {
             start(phase: pendingPhase)
         } else {
@@ -374,6 +443,7 @@ final class TimerStore: ObservableObject {
         pendingPhase = nil
         isOneOffFocus = false
         preparedOneOffFocusMinutes = nil
+        focusLimitRound = nil
         persist()
     }
 
@@ -408,6 +478,7 @@ final class TimerStore: ObservableObject {
         completedRoundsInPlan = snapshot.completedRoundsInPlan
         pendingPhase = snapshot.pendingPhase == .longBreak ? .shortBreak : snapshot.pendingPhase
         isOneOffFocus = snapshot.isOneOffFocus
+        focusLimitRound = snapshot.focusLimitRound
         preparedOneOffFocusMinutes = snapshot.preparedOneOffFocusMinutes.map {
             min(max($0, 1), TimerDurationLimits.oneOffFocusMinutes)
         }
@@ -418,6 +489,7 @@ final class TimerStore: ObservableObject {
                 completeCurrentPhase(at: Date())
             }
         }
+        publishFocusLimitRound()
     }
 
     private func persist() {
@@ -431,9 +503,22 @@ final class TimerStore: ObservableObject {
             completedRoundsInPlan: completedRoundsInPlan,
             pendingPhase: pendingPhase,
             isOneOffFocus: isOneOffFocus,
-            preparedOneOffFocusMinutes: preparedOneOffFocusMinutes
+            preparedOneOffFocusMinutes: preparedOneOffFocusMinutes,
+            focusLimitRound: focusLimitRound
         )
-        guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        defaults.set(data, forKey: snapshotKey)
+        if let data = try? JSONEncoder().encode(snapshot) {
+            defaults.set(data, forKey: snapshotKey)
+        }
+        publishFocusLimitRound()
+    }
+
+    private func publishFocusLimitRound() {
+        let next: ActiveFocusLimitRound?
+        if phase.isFocus, status == .running, let focusLimitRound, let endDate, endDate > Date() {
+            next = ActiveFocusLimitRound(round: focusLimitRound, endsAt: endDate)
+        } else {
+            next = nil
+        }
+        if next != activeFocusLimitRound { activeFocusLimitRound = next }
     }
 }

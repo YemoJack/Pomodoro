@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let focusCompletionPresenter = FocusCompletionPresenter.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        FocusLimitService.shared.start(timer: .shared, settings: .shared)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(menuDidBeginTracking),
@@ -31,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        FocusLimitService.shared.stop()
         focusCompletionPresenter.dismiss()
         NotificationCenter.default.removeObserver(self)
     }
@@ -40,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !TimerStore.shared.isGlobalFocusLocked else { return .terminateCancel }
         guard TimerStore.shared.isActive else { return .terminateNow }
 
         let shouldQuit = ConfirmationService.confirm(

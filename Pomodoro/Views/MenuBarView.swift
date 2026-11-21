@@ -5,6 +5,7 @@ struct MenuBarView: View {
     @EnvironmentObject private var sessions: SessionStore
     @EnvironmentObject private var settings: SettingsStore
     @EnvironmentObject private var notifications: NotificationService
+    @EnvironmentObject private var focusLimits: FocusLimitService
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -22,7 +23,12 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if timer.status == .idle {
+            if timer.isGlobalFocusLocked {
+                Button("强行终止…") {
+                    Task { await timer.authenticateAndEndGlobalFocus() }
+                }
+                .disabled(timer.isAuthenticatingGlobalFocus)
+            } else if timer.status == .idle {
                 Button("开始专注") {
                     startFocus()
                 }
@@ -53,6 +59,14 @@ struct MenuBarView: View {
 
             Divider()
 
+            Menu("专注限制") {
+                Toggle("启用专注限制", isOn: $settings.focusLimitsEnabled)
+                    .disabled(timer.isGlobalFocusLocked)
+                if settings.focusLimitRules.websites.isActive {
+                    Text(focusLimits.chromeStatus)
+                }
+            }
+
             Text("今日完成 \(sessions.todayFocusCount) 个番茄")
             Text("今日专注 \(Int(sessions.todayFocusSeconds / 60)) 分钟")
 
@@ -74,6 +88,7 @@ struct MenuBarView: View {
             Button("退出番茄专注") {
                 NSApplication.shared.terminate(nil)
             }
+            .disabled(timer.isGlobalFocusLocked)
             .keyboardShortcut("q", modifiers: .command)
         }
     }

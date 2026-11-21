@@ -36,6 +36,9 @@
 		A0010000000000000000001B /* InteractiveButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000015 /* InteractiveButtonStyle.swift */; };
 		A0010000000000000000001C /* PomodoroIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000016 /* PomodoroIcon.icns */; };
 		A0010000000000000000001D /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000017 /* AppIcon.icon */; };
+		A0010000000000000000001E /* FocusLimitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0010000000000000000001E /* FocusLimitService.swift */; };
+		A0010000000000000000001F /* ChromeNativeMessaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0010000000000000000001F /* ChromeNativeMessaging.swift */; };
+		A00100000000000000000022 /* FocusLimitSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00100000000000000000022 /* FocusLimitSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +67,9 @@
 		B00100000000000000000017 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		B00100000000000000000020 /* Pomodoro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pomodoro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00100000000000000000021 /* PomodoroTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PomodoroTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0010000000000000000001E /* FocusLimitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusLimitService.swift; sourceTree = "<group>"; };
+		B0010000000000000000001F /* ChromeNativeMessaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChromeNativeMessaging.swift; sourceTree = "<group>"; };
+		B00100000000000000000022 /* FocusLimitSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusLimitSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,7 +135,9 @@
 			isa = PBXGroup;
 			children = (
 				B00100000000000000000006 /* NotificationService.swift */,
+				B0010000000000000000001E /* FocusLimitService.swift */,
 				B00100000000000000000007 /* ConfirmationService.swift */,
+				B0010000000000000000001F /* ChromeNativeMessaging.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -153,6 +161,7 @@
 				B0010000000000000000000E /* RootView.swift */,
 				B0010000000000000000000F /* MenuBarView.swift */,
 				B00100000000000000000010 /* SettingsView.swift */,
+				B00100000000000000000022 /* FocusLimitSettingsView.swift */,
 				B00100000000000000000014 /* QuickSettingsView.swift */,
 				B00100000000000000000015 /* InteractiveButtonStyle.swift */,
 			);
@@ -286,7 +295,9 @@
 				A00100000000000000000004 /* TimerModels.swift in Sources */,
 				A00100000000000000000005 /* FocusSession.swift in Sources */,
 				A00100000000000000000006 /* NotificationService.swift in Sources */,
+				A0010000000000000000001E /* FocusLimitService.swift in Sources */,
 				A00100000000000000000007 /* ConfirmationService.swift in Sources */,
+				A0010000000000000000001F /* ChromeNativeMessaging.swift in Sources */,
 				A00100000000000000000008 /* SettingsStore.swift in Sources */,
 				A00100000000000000000009 /* SessionStore.swift in Sources */,
 				A0010000000000000000000A /* TimerStore.swift in Sources */,
@@ -296,6 +307,7 @@
 				A0010000000000000000000E /* RootView.swift in Sources */,
 				A0010000000000000000000F /* MenuBarView.swift in Sources */,
 				A00100000000000000000010 /* SettingsView.swift in Sources */,
+				A00100000000000000000022 /* FocusLimitSettingsView.swift in Sources */,
 				A0010000000000000000001A /* QuickSettingsView.swift in Sources */,
 				A0010000000000000000001B /* InteractiveButtonStyle.swift in Sources */,
 			);

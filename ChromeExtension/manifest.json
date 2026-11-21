@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Pomodoro 专注限制",
+  "version": "1.0.0",
+  "description": "在 Pomodoro 专注计时期间限制网站访问。",
+  "minimum_chrome_version": "120",
+  "incognito": "not_allowed",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApmX2huk5/3iXKpf3Z/3lrhK0vkkYhz9YRzjJMxs4nRcivgb+xvMp8tJwNciAz71C6nQ5tMXxwlRLOTolxvzHe5UPyh2coEtab2K6ISAMD/HzpAyfloMQyDkrPLt+jiaOnoiXTNrQ5ZQfC6iZIw2mdv7fO+xTBsCzFAzSLJq0aFsIH//vKXBfnDb7mfFQyejCfmUvhSHSVjBXa2/7/vze8QyozbEIPGCbXa10AU1T9pecPMa/R4dFbG0yyvIAFggAmIwyIn1DvKf45eeV/iUpqQA3YYgQs60p6K/9LH8S0TjT8TOHzi2Q6GwHOD8p7vXPFlebA9FbSulwBYtBLn2OrwIDAQAB",
+  "permissions": ["alarms", "declarativeNetRequestWithHostAccess", "nativeMessaging", "scripting", "storage"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html" },
+  "web_accessible_resources": [
+    { "resources": ["blocked.html"], "matches": ["http://*/*", "https://*/*"] }
+  ]
+}

@@ -162,6 +162,59 @@ enum TimerStatus: String, Codable {
     case completed
 }
 
+enum FocusLimitMode: String, Codable, CaseIterable, Identifiable {
+    case off, block, allow
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .off: "关闭"
+        case .block: "屏蔽名单内"
+        case .allow: "仅允许名单内"
+        }
+    }
+}
+
+struct FocusLimitList: Codable, Equatable {
+    var mode: FocusLimitMode = .block
+    var blocked: [String] = []
+    var allowed: [String] = []
+
+    var entries: [String] {
+        get { mode == .allow ? allowed : blocked }
+        set {
+            if mode == .allow { allowed = newValue } else { blocked = newValue }
+        }
+    }
+
+    var isActive: Bool { mode != .off && !entries.isEmpty }
+
+    func denies(_ target: String, includingSubdomains: Bool = false) -> Bool {
+        guard isActive else { return false }
+        let matches = entries.contains { entry in
+            target == entry || (includingSubdomains && target.hasSuffix("." + entry))
+        }
+        return mode == .allow ? !matches : matches
+    }
+}
+
+struct FocusLimitRules: Codable, Equatable {
+    var apps = FocusLimitList()
+    var websites = FocusLimitList()
+}
+
+struct FocusLimitRound: Codable, Equatable {
+    let id: UUID
+    let rules: FocusLimitRules
+    var isGlobal: Bool? = nil
+}
+
+struct ActiveFocusLimitRound: Equatable {
+    let round: FocusLimitRound
+    let endsAt: Date
+}
+
 struct TimerSnapshot: Codable {
     let phase: TimerPhase
     let status: TimerStatus
@@ -173,6 +226,7 @@ struct TimerSnapshot: Codable {
     let pendingPhase: TimerPhase?
     let isOneOffFocus: Bool
     let preparedOneOffFocusMinutes: Int?
+    let focusLimitRound: FocusLimitRound?
 
     private enum CodingKeys: String, CodingKey {
         case phase
@@ -185,6 +239,7 @@ struct TimerSnapshot: Codable {
         case pendingPhase
         case isOneOffFocus
         case preparedOneOffFocusMinutes
+        case focusLimitRound
     }
 
     init(
@@ -197,7 +252,8 @@ struct TimerSnapshot: Codable {
         completedRoundsInPlan: Int,
         pendingPhase: TimerPhase?,
         isOneOffFocus: Bool = false,
-        preparedOneOffFocusMinutes: Int? = nil
+        preparedOneOffFocusMinutes: Int? = nil,
+        focusLimitRound: FocusLimitRound? = nil
     ) {
         self.phase = phase
         self.status = status
@@ -209,6 +265,7 @@ struct TimerSnapshot: Codable {
         self.pendingPhase = pendingPhase
         self.isOneOffFocus = isOneOffFocus
         self.preparedOneOffFocusMinutes = preparedOneOffFocusMinutes
+        self.focusLimitRound = focusLimitRound
     }
 
     init(from decoder: Decoder) throws {
@@ -223,5 +280,6 @@ struct TimerSnapshot: Codable {
         pendingPhase = try container.decodeIfPresent(TimerPhase.self, forKey: .pendingPhase)
         isOneOffFocus = try container.decodeIfPresent(Bool.self, forKey: .isOneOffFocus) ?? false
         preparedOneOffFocusMinutes = try container.decodeIfPresent(Int.self, forKey: .preparedOneOffFocusMinutes)
+        focusLimitRound = try container.decodeIfPresent(FocusLimitRound.self, forKey: .focusLimitRound)
     }
 }
